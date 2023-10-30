@@ -8,6 +8,7 @@ import scipy
 
 
 def p_linear(k_array, k_pivot, A_alpha, n_alpha):
+    """ k_pivot=0.7 """
     
     p_linear = A_alpha * (k / k_pivot)**n_alpha
     
