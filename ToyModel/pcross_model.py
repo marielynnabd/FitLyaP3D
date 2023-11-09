@@ -24,9 +24,7 @@ def get_p_k_linear(k_pivot, A_alpha, n_alpha):
 
     p_linear = A_alpha * (k_array / k_pivot)**n_alpha
     if np.any(p_linear<0):
-        print('negative p_linear 1st check')
-        # print('p_linear', p_linear)
-        print(A_alpha, n_alpha)
+        print('negative p_linear')
     
     p_k_linear = [k_array, p_linear]
     
@@ -46,9 +44,6 @@ def get_p1d(k_par: np.array, k_pivot: float, A_alpha: float, n_alpha: float):
     """
 
     p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
-     
-    if np.any(p_k_linear[1]<0):
-        print('negative p_linear 2nd check')
 
     p1d = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=0, p_k_linear=p_k_linear, 
                                q1=0.666, q2=0, 
@@ -76,9 +71,6 @@ def get_p1d_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k
     """
 
     p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
-     
-    if np.any(p_k_linear[1]<0):
-        print('negative p_linear 2nd check')
 
     p1d = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=0, p_k_linear=p_k_linear, 
                                q1=q1, q2=q2, 
@@ -93,59 +85,7 @@ def get_p1d_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k
     return p1d
 
 
-# def get_p_cross(k_par, A_alpha, n_alpha, k_max=100, ang_sep=0, q1=0.666, q2=0, kv=0.935003735664152, a_v=0.561, b_v=1.58, 
-#             k_p=13.5, a_p=2.0,  b_delta_squared=0.012462846812427325, beta=1.385):
-#     """ 
-#     Args:
-    
-#     errors: String, Default: 'no errors'
-#             Options: - 'no errors', 'add errors'
-            
-#     covariance: String, Default: 'no covariance'
-#             Options: - 'no covariance', 'add covariance'
-    
-#     """
 
-#     p_k_linear = get_p_k_linear(k_max=k_max, A_alpha=A_alpha, n_alpha=n_alpha)
-     
-#     if np.any(p_k_linear[1]<0):
-#         print('negative p_linear 2nd check')
-
-#     p_cross = compute_pcross_truth(k_par=k_par, k_max=k_max, ang_sep=ang_sep, p_k_linear=p_k_linear, q1=q1, q2=q2, 
-#                                    kv=kv, a_v=a_v, b_v=b_v, 
-#                                    k_p=k_p, a_p=a_p,                                
-#                                    b_delta_squared=b_delta_squared, beta=beta, 
-#                                    model='model2')
-#     if np.any(p_cross<0):
-#         print('negative p_cross')
-
-#     return p_cross
-
-
-# def likelihood_p1d(A_alpha_array, n_alpha_array):
-    
-#     k_par_array = np.array([0, 1, 2, 3])
-#     k_max = 100 # h/Mpc
-#     ang_sep_array = np.array([0])
-    
-#     p1d_data = get_p_cross(k_par=k_par_array, k_max=k_max, ang_sep=ang_sep_array, 
-#                             A_alpha=0.8, n_alpha=0.31, 
-#                             q1=0.666, q2=0, 
-#                             kv=0.935003735664152, a_v=0.561, b_v=1.58, 
-#                             k_p=13.5, a_p=2.0,  b_delta_squared=0.012462846812427325, beta=1.385)
-    
-#     error_p1d_data = 0.01 * p1d_data
-
-#     p1d_model = get_p_cross(k_par=k_par_array, k_max=k_max, ang_sep=ang_sep_array, 
-#                             A_alpha=A_alpha_array, n_alpha=n_alpha_array, 
-#                             q1=0.666, q2=0, 
-#                             kv=0.935003735664152, a_v=0.561, b_v=1.58, 
-#                             k_p=13.5, a_p=2.0,  b_delta_squared=0.012462846812427325, beta=1.385)
-
-#     chi_squared = 
-    
-    
-    
     
 
 
@@ -167,7 +107,6 @@ def read_params(path_to_yaml_params_file):
             varying_params_range[param_name] = parinfo['limit']
 
     return params_centers, varying_params_names, varying_params_range
-
 
 
 def get_likelihood_p_cross_varying_one_param(path_to_yaml_params_file, varying_param_name, k_par, k_max, ang_sep):
