@@ -8,6 +8,7 @@ import scipy
 import yaml
 import multiprocessing
 from multiprocessing import Pool
+import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.environ['HOME']+'/Software/LyaP3D')
 from tools import SPEED_LIGHT, LAMBDA_LYA
@@ -19,7 +20,7 @@ def get_p_k_linear(k_pivot, A_alpha, n_alpha):
     h = 0.7
     # k_pivot = 0.05 / h # h Mpc^-1 # this value of k_pivot corresponds to CMB scale so it's normal to get max corr between A and n at this scale
     # k_pivot = 15 / h # h Mpc^-1
-    k_max=100
+    k_max = 100
     k_array = np.logspace(-5, np.log10(k_max), num=1000) # h Mpc^-1
 
     p_linear = A_alpha * (k_array / k_pivot)**n_alpha
@@ -27,20 +28,14 @@ def get_p_k_linear(k_pivot, A_alpha, n_alpha):
         print('negative p_linear')
     
     p_k_linear = [k_array, p_linear]
-    
+
     return p_k_linear
 
 
-def get_p1d(k_par: np.array, k_pivot: float, A_alpha: float, n_alpha: float):
+def get_p1d(k_par, k_pivot, A_alpha, n_alpha):
     """ 
-    Args:
-    
-    errors: String, Default: 'no errors'
-            Options: - 'no errors', 'add errors'
-            
-    covariance: String, Default: 'no covariance'
-            Options: - 'no covariance', 'add covariance'
-    
+    Function used for p1d minimization
+    - k_max and ang_sep nare fixed, k_pivot will be fixed also
     """
 
     p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
@@ -59,15 +54,9 @@ def get_p1d(k_par: np.array, k_pivot: float, A_alpha: float, n_alpha: float):
 
 
 def get_p1d_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
-    """ 
-    Args:
-    
-    errors: String, Default: 'no errors'
-            Options: - 'no errors', 'add errors'
-            
-    covariance: String, Default: 'no covariance'
-            Options: - 'no covariance', 'add covariance'
-    
+    """
+    Function used for p1d minimization with the option to vary all params
+    - k_max and ang_sep nare fixed, k_pivot will be fixed also
     """
 
     p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
@@ -85,9 +74,41 @@ def get_p1d_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k
     return p1d
 
 
-
+def get_pcross_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
+    """ 
+    Function used for pcross minimization with the option to vary all params
+    - k_max and ang_sep are fixed, k_pivot will be fixed also
+    """
     
+    ang_sep_Mpc_h = np.linspace(0, 15, 10)
 
+    p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
+
+    pcross = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=ang_sep_Mpc_h, p_k_linear=p_k_linear, 
+                               q1=q1, q2=q2, 
+                               kv=kv, a_v=a_v, b_v=b_v, 
+                               k_p=k_p, a_p=a_p,  
+                               b_delta_squared=b_delta_squared, beta=beta, 
+                               model='model2')
+    
+    return pcross
+    
+#     print("pcross shape", np.shape(pcross))
+#     pcross_flattened = pcross.flatten()
+#     print("pcross_flattened shape used for minimization", np.shape(pcross_flattened))
+
+#     return pcross_flattened
+
+
+def vary_params(minuit_object, varying_params_keys):
+    """ This function fixes first all params and then varies the ones in varying_params_list """
+
+    minuit_object.fixed = True
+
+    for keys in varying_params_keys:
+        minuit_object.fixed[keys] = False
+        
+    return minuit_object
 
 
 def read_params(path_to_yaml_params_file):
