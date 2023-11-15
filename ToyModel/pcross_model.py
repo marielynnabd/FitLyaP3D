@@ -15,6 +15,19 @@ from tools import SPEED_LIGHT, LAMBDA_LYA
 from truth_p3d_computation import compute_pcross_truth
 
 
+def get_A_alpha(k_pivot):
+    """ Function that computes A_alpha for a fixed k_pivot"""
+    h=0.7
+    k_pivot_ref = 0.7 / h # h Mpc^-1 # this value of k_pivot corresponds to Pedersen
+    A_alpha_ref = 0.35*(2*np.pi**2)/k_pivot_ref**3
+    n_alpha_ref = -2.30
+    ### Using the P_linear model for this Toy model
+    A_alpha = A_alpha_ref * (k_pivot / k_pivot_ref)**n_alpha_ref
+    print("k_pivot", k_pivot)
+    print("A_alpha", A_alpha)
+    return A_alpha
+
+
 def get_p_k_linear(k_pivot, A_alpha, n_alpha):
     """ At the CMB pivot scale: k_pivot=0.05 Mpc^-1, k_array in h/Mpc """
     h = 0.7
