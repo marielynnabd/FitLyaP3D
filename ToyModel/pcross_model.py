@@ -14,6 +14,8 @@ sys.path.insert(0, os.environ['HOME']+'/Software/LyaP3D')
 from tools import SPEED_LIGHT, LAMBDA_LYA
 from truth_p3d_computation import compute_pcross_truth
 
+from iminuit.util import describe
+
 
 def get_A_alpha(k_pivot):
     """ Function that computes A_alpha for a fixed k_pivot"""
@@ -105,16 +107,10 @@ def get_pcross_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v
                                model='model2')
     
     return pcross
-    
-#     print("pcross shape", np.shape(pcross))
-#     pcross_flattened = pcross.flatten()
-#     print("pcross_flattened shape used for minimization", np.shape(pcross_flattened))
-
-#     return pcross_flattened
 
 
 def vary_params(minuit_object, varying_params_keys):
-    """ This function fixes first all params and then varies the ones in varying_params_list """
+    """ This function fixes first all params, then varies the ones in varying_params_keys list """
 
     minuit_object.fixed = True
 
@@ -122,6 +118,38 @@ def vary_params(minuit_object, varying_params_keys):
         minuit_object.fixed[keys] = False
         
     return minuit_object
+
+
+class Likelihood_Pcross:
+    """ Likelihood cost function used in minuit minimization
+    - model is the get_p1d
+    - x is the k_par_array
+    - y is the p1d_data
+    - err is the error_p1d_data
+    - ym is the p1d_model
+    """
+
+    # errordef = Minuit.LEAST_SQUARES  # for Minuit to compute errors correctly
+
+    def __init__(self, model, x, y, err): # model is get_p1d or get_pcross
+        self.x = np.asarray(x)
+        self.y = np.asarray(y)
+        self.err = np.asarray(err)
+        self.model = model  # function that predicts y for given x
+
+        params = describe(model)[1:]
+        self.parameters = params
+    
+
+    def __call__(self, *params):  # we must accept a variable number of model parameters
+        ym = self.model(self.x, *params)
+
+        chi_squared = np.sum((self.y - ym) ** 2 / self.err ** 2)
+        
+        # likelihood = -0.5 * chi_squared
+        likelihood = chi_squared
+
+        return likelihood
 
 
 def read_params(path_to_yaml_params_file):
