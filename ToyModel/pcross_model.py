@@ -48,6 +48,32 @@ def get_p_k_linear(k_pivot, A_alpha, n_alpha):
     return p_k_linear
 
 
+def get_p_k_linear_wdm(k_pivot, A_alpha, n_alpha, alpha):
+    """ Including WDM model, beta and gamma being fixed, alpha varying, k_array in h/Mpc """
+    h = 0.7
+    k_max = 100
+    k_array = np.logspace(-5, np.log10(k_max), num=1000) # h Mpc^-1
+    
+    # WDM params
+    nu = 1.12
+    beta = 2 * nu
+    gamma = -5 / nu
+    T = (1 + (alpha * k_array)**beta)**gamma
+
+    # p_linear
+    p_linear = A_alpha * (k_array / k_pivot)**n_alpha
+    
+    # p_linear WDM
+    p_linear_WDM = p_linear * (T**2)
+    
+    if np.any(p_linear<0):
+        print('negative p_linear')
+    
+    p_k_linear = [k_array, p_linear_WDM]
+
+    return p_k_linear
+
+
 def get_p1d(k_par, k_pivot, A_alpha, n_alpha):
     """ 
     Function used for p1d minimization
@@ -88,104 +114,6 @@ def get_p1d_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k
         print('negative p1d')
 
     return p1d
-
-
-def get_p1d_all_params_all_z_test(k_par, z, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
-    """
-    Function used for p1d minimization with the option to vary all params
-    - k_max and ang_sep are fixed
-    - k_par: Array of parallel wavenumbers
-    - z: Float ot array of floats
-    - k_pivot and all other params are either floats or arrays of floats corresponding to each z, having same length as the z array
-    """ 
-
-    input_args = [z, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta]
-
-    # Convert single values to arrays for iteration
-    if hasattr(z,'__len__') is False: # Which applies to other params since they have same length
-        z = np.array([z])
-        k_pivot = np.array([k_pivot])
-        A_alpha = np.array([A_alpha])
-        n_alpha = np.array([n_alpha])
-        q1 = np.array([q1])
-        q2 = np.array([q2])
-        kv = np.array([kv])
-        a_v = np.array([a_v])
-        b_v = np.array([b_v])
-        k_p = np.array([k_p])
-        a_p = np.array([a_p])
-        b_delta_squared = np.array([b_delta_squared])
-        beta = np.array([beta])
-
-    p1d_list = []
-    
-    for z_value in z:
-        
-        w = np.where(z==z_value)
-
-        p_k_linear = get_p_k_linear(k_pivot=k_pivot[w], A_alpha=A_alpha[w], n_alpha=n_alpha[w])
-
-        p1d = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=0, p_k_linear=p_k_linear, 
-                                   q1=q1[w], q2=q2[w], 
-                                   kv=kv[w], a_v=a_v[w], b_v=b_v[w], 
-                                   k_p=k_p[w], a_p=a_p[w],  
-                                   b_delta_squared=b_delta_squared[w], beta=beta[w], 
-                                   model='model2')
-
-        if np.any(p1d<0):
-            print('negative p1d')
-            
-        p1d_list.append(p1d)
-        
-    p1d_stacked = np.vstack(p1d_list)
-
-    return p1d_stacked
-
-
-def get_p1d_all_params_all_z_test_2(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
-    """
-    Function used for p1d minimization with the option to vary all params
-    - k_max and ang_sep are fixed
-    - k_par: Array of parallel wavenumbers
-    - z: Float ot array of floats
-    - k_pivot and all other params are either floats or arrays of floats corresponding to each z, having same length as the z array
-    """
-    
-    if hasattr(k_pivot,'__len__') is False:
-        k_pivot = np.array([k_pivot])
-        A_alpha = np.array([A_alpha])
-        n_alpha = np.array([n_alpha])
-        q1 = np.array([q1])
-        q2 = np.array([q2])
-        kv = np.array([kv])
-        a_v = np.array([a_v])
-        b_v = np.array([b_v])
-        k_p = np.array([k_p])
-        a_p = np.array([a_p])
-        b_delta_squared = np.array([b_delta_squared])
-        beta = np.array([beta])
-    
-    p1d_list = []
-    
-    for i in range(len(k_pivot)):
-
-        p_k_linear = get_p_k_linear(k_pivot=k_pivot[i], A_alpha=A_alpha[i], n_alpha=n_alpha[i])
-
-        p1d = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=0, p_k_linear=p_k_linear, 
-                                   q1=q1[i], q2=q2[i], 
-                                   kv=kv[i], a_v=a_v[i], b_v=b_v[i], 
-                                   k_p=k_p[i], a_p=a_p[i],  
-                                   b_delta_squared=b_delta_squared[i], beta=beta[i], 
-                                   model='model2')
-
-        if np.any(p1d<0):
-            print('negative p1d')
-            
-        p1d_list.append(p1d)
-        
-    p1d_stacked = np.vstack(p1d_list)
-
-    return p1d_stacked
 
 
 def get_pcross_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
@@ -255,6 +183,10 @@ class Likelihood_Pcross:
         self.verbose = verbose
 
         params = describe(self.model)[1:]
+        # Might be removed later
+        if params[0]=='z':
+            params = describe(self.model)[2:]
+        ##
         print('params', params)
         print(*params)
         self.parameters = params
