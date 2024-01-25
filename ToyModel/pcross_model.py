@@ -145,7 +145,7 @@ def get_pcross_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v
 
     ang_sep_Mpc_h = np.linspace(0, 15, 10)
 
-    p_k_linear = get_p_k_linear_wdm(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
+    p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
 
     pcross = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=ang_sep_Mpc_h, p_k_linear=p_k_linear, 
                                q1=q1, q2=q2, 
@@ -165,7 +165,7 @@ def get_pcross_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha, q1, q2, k
 
     ang_sep_Mpc_h = np.linspace(0, 15, 10)
 
-    p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha=alpha)
+    p_k_linear = get_p_k_linear_wdm(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha=alpha)
 
     pcross = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=ang_sep_Mpc_h, p_k_linear=p_k_linear, 
                                q1=q1, q2=q2, 
