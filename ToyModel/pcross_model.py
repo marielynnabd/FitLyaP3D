@@ -53,7 +53,7 @@ def get_p_k_linear_wdm(k_pivot, A_alpha, n_alpha, alpha):
     h = 0.7
     k_max = 100
     k_array = np.logspace(-5, np.log10(k_max), num=1000) # h Mpc^-1
-    
+
     # WDM params
     nu = 1.12
     beta = 2 * nu
@@ -62,13 +62,13 @@ def get_p_k_linear_wdm(k_pivot, A_alpha, n_alpha, alpha):
 
     # p_linear
     p_linear = A_alpha * (k_array / k_pivot)**n_alpha
-    
+
     # p_linear WDM
     p_linear_WDM = p_linear * (T**2)
-    
+
     if np.any(p_linear<0):
         print('negative p_linear')
-    
+
     p_k_linear = [k_array, p_linear_WDM]
 
     return p_k_linear
@@ -116,12 +116,33 @@ def get_p1d_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k
     return p1d
 
 
+def get_p1d_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
+    """
+    Function used for p1d minimization with the option to vary all params
+    - k_max and ang_sep nare fixed, k_pivot will be fixed also
+    """
+
+    p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha=alpha)
+
+    p1d = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=0, p_k_linear=p_k_linear, 
+                               q1=q1, q2=q2, 
+                               kv=kv, a_v=a_v, b_v=b_v, 
+                               k_p=k_p, a_p=a_p,  
+                               b_delta_squared=b_delta_squared, beta=beta, 
+                               model='model2')
+
+    if np.any(p1d<0):
+        print('negative p1d')
+
+    return p1d
+
+
 def get_pcross_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
     """ 
     Function used for pcross minimization with the option to vary all params
     - k_max and ang_sep are fixed, k_pivot will be fixed also
     """
-    
+
     ang_sep_Mpc_h = np.linspace(0, 15, 10)
 
     p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha)
@@ -132,7 +153,27 @@ def get_pcross_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v
                                k_p=k_p, a_p=a_p,  
                                b_delta_squared=b_delta_squared, beta=beta, 
                                model='model2')
-    
+
+    return pcross
+
+
+def get_pcross_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
+    """ 
+    Function used for pcross minimization with the option to vary all params
+    - k_max and ang_sep are fixed, k_pivot will be fixed also
+    """
+
+    ang_sep_Mpc_h = np.linspace(0, 15, 10)
+
+    p_k_linear = get_p_k_linear(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha=alpha)
+
+    pcross = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=ang_sep_Mpc_h, p_k_linear=p_k_linear, 
+                               q1=q1, q2=q2, 
+                               kv=kv, a_v=a_v, b_v=b_v, 
+                               k_p=k_p, a_p=a_p,  
+                               b_delta_squared=b_delta_squared, beta=beta, 
+                               model='model2')
+
     return pcross
 
 
