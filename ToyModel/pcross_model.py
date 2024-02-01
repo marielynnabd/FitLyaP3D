@@ -48,8 +48,8 @@ def get_p_k_linear(k_pivot, A_alpha, n_alpha):
     return p_k_linear
 
 
-def get_p_k_linear_wdm(k_pivot, A_alpha, n_alpha, alpha):
-    """ Including WDM model, beta and gamma being fixed, alpha varying, k_array in h/Mpc """
+def get_p_k_linear_wdm(k_pivot, A_alpha, n_alpha, alpha_wdm):
+    """ Including WDM model, beta and gamma being fixed, alpha_wdm varying, k_array in h/Mpc """
     h = 0.7
     k_max = 100
     k_array = np.logspace(-5, np.log10(k_max), num=1000) # h Mpc^-1
@@ -59,10 +59,10 @@ def get_p_k_linear_wdm(k_pivot, A_alpha, n_alpha, alpha):
     beta = 2 * nu
     gamma = -5 / nu
     
-    if alpha > 0:
-        T = (1 + (alpha * k_array)**beta)**gamma
+    if alpha_wdm > 0:
+        T = (1 + (alpha_wdm * k_array)**beta)**gamma
     else:
-        T_sim = (1 + (-alpha * k_array)**beta)**gamma  
+        T_sim = (1 + (-alpha_wdm * k_array)**beta)**gamma  
         T = 1 + (1 - T_sim)
 
     # p_linear
@@ -121,13 +121,13 @@ def get_p1d_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v, k
     return p1d
 
 
-def get_p1d_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
+def get_p1d_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha_wdm, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
     """
     Function used for p1d minimization with the option to vary all params
     - k_max and ang_sep nare fixed, k_pivot will be fixed also
     """
 
-    p_k_linear = get_p_k_linear_wdm(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha=alpha)
+    p_k_linear = get_p_k_linear_wdm(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha_wdm=alpha_wdm)
 
     p1d = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=0, p_k_linear=p_k_linear, 
                                q1=q1, q2=q2, 
@@ -162,7 +162,7 @@ def get_pcross_all_params(k_par, k_pivot, A_alpha, n_alpha, q1, q2, kv, a_v, b_v
     return pcross
 
 
-def get_pcross_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
+def get_pcross_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha_wdm, q1, q2, kv, a_v, b_v, k_p, a_p, b_delta_squared, beta):
     """ 
     Function used for pcross minimization with the option to vary all params
     - k_max and ang_sep are fixed, k_pivot will be fixed also
@@ -170,7 +170,7 @@ def get_pcross_all_params_wdm(k_par, k_pivot, A_alpha, n_alpha, alpha, q1, q2, k
 
     ang_sep_Mpc_h = np.linspace(0, 15, 10)
 
-    p_k_linear = get_p_k_linear_wdm(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha=alpha)
+    p_k_linear = get_p_k_linear_wdm(k_pivot=k_pivot, A_alpha=A_alpha, n_alpha=n_alpha, alpha_wdm=alpha_wdm)
 
     pcross = compute_pcross_truth(k_par=k_par, k_max=100, ang_sep=ang_sep_Mpc_h, p_k_linear=p_k_linear, 
                                q1=q1, q2=q2, 
