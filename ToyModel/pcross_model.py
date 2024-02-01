@@ -58,7 +58,12 @@ def get_p_k_linear_wdm(k_pivot, A_alpha, n_alpha, alpha):
     nu = 1.12
     beta = 2 * nu
     gamma = -5 / nu
-    T = (1 + (alpha * k_array)**beta)**gamma
+    
+    if alpha > 0:
+        T = (1 + (alpha * k_array)**beta)**gamma
+    else:
+        T_sim = (1 + (-alpha * k_array)**beta)**gamma  
+        T = 1 + (1 - T_sim)
 
     # p_linear
     p_linear = A_alpha * (k_array / k_pivot)**n_alpha
