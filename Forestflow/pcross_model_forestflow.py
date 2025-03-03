@@ -16,6 +16,8 @@ import forestflow
 from lace.cosmo.thermal_broadening import thermal_broadening_kms
 from lace.cosmo import camb_cosmo
 
+from functools import partial
+
 
 def get_pcross_forestflow_old(z_target, k_parallel, transverse_sep, mF, gamma, sigT_Mpc, kF_Mpc, Archive3D=None, 
                           k_parallel_units='I_Angstrom', transverse_sep_units='deg'):
@@ -177,7 +179,6 @@ def load_emulator():
         adamw=True,
         nLayers_inn=12,  # 15
         Archive=Archive3D,
-        Nrealizations=10000,
         training_type=training_type,
         model_path=model_path,
     )
@@ -210,7 +211,7 @@ def load_arinyo(z, cosmo_param_dict):
     return arinyo
 
 
-def get_forestflow_params(z, igm_param_dict, cosmo_param_dict):
+def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, sim_cosmo, dkms_dMpc_zs):
     """ This function: 
         - Reads the IGM parameters from igm_param_dict
         - Reads the cosmo parameters from cosmo_param_dict
@@ -240,11 +241,11 @@ def get_forestflow_params(z, igm_param_dict, cosmo_param_dict):
     """
 
     # Getting sim_cosmo from camb_cosmo based on cosmo input to be used for conversions
-    sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo_param_dict)
+    # sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo_param_dict)
 
     # Converting IGM parameters T0 and lambda_pressure to emulator parameters sigT_Mpc and kF_Mpc respectively
     sigT_kms = thermal_broadening_kms(igm_param_dict['T0'])
-    dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, z=np.array([z]))
+    # dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, z=np.array([z]))
     sigT_Mpc = sigT_kms / dkms_dMpc_zs[0]
     kF_Mpc = 1 / (igm_param_dict['lambda_pressure'] / 1000)
 
@@ -263,43 +264,45 @@ def get_forestflow_params(z, igm_param_dict, cosmo_param_dict):
     return emu_params, info_power
 
 
-def convert_kpar_to_forestflow_units(z, cosmo_param_dict, kpar, inout_unit='AA'):
+def convert_kpar_to_forestflow_units(z, kpar, inout_unit, dAA_dMpc_zs=None, dkms_dMpc_zs=None):
     """ Converts kpar to Mpc, the only input unit accepted by forestflow """
 
-    # Getting sim_cosmo from camb_cosmo based on cosmo input to be used for conversions
-    sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo_param_dict)
-
-    if inout_unit == 'AA': 
-        dAA_dMpc_zs = camb_cosmo.dAA_dMpc(sim_cosmo, np.array([z]), LAMBDA_LYA)
-        kpar_iMpc = kpar * dAA_dMpc_zs
+    if inout_unit == 'AA':
+        if dAA_dMpc_zs is not None:
+            kpar_iMpc = kpar * dAA_dMpc_zs
+        else:
+            sys.exit('Must input dAA_dMpc_zs')
     elif inout_unit == 'kmps':
-        dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, np.array([z]))
-        kpar_iMpc = kpar * dkms_dMpc_zs
+        if dkms_dMpc_zs is not None:
+            kpar_iMpc = kpar * dkms_dMpc_zs
+        else:
+            sys.exit('Must input dkms_dMpc_zs') 
     else:
         sys.exit('Must input inout_unit: AA or kmps')
 
     return kpar_iMpc
 
 
-def convert_pcross_to_output_units(z, cosmo_param_dict, Px_pred_Mpc, inout_unit='AA'):
+def convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=None, dkms_dMpc_zs=None):
     """ Converts the output of forestflow from Mpc to the desired output unit """
 
-    # Getting sim_cosmo from camb_cosmo based on cosmo input to be used for conversions
-    sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo_param_dict)
-
-    if inout_unit == 'AA': 
-        dAA_dMpc_zs = camb_cosmo.dAA_dMpc(sim_cosmo, np.array([z]), LAMBDA_LYA)
-        Px_pred_outunits = Px_pred_Mpc / dAA_dMpc_zs
+    if inout_unit == 'AA':
+        if dAA_dMpc_zs is not None:
+            Px_pred_outunits = Px_pred_Mpc / dAA_dMpc_zs
+        else:
+            sys.exit('Must input dAA_dMpc_zs')
     elif inout_unit == 'kmps':
-        dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, np.array([z]))
-        Px_pred_outunits = Px_pred_Mpc / dkms_dMpc_zs
+        if dkms_dMpc_zs is not None:
+            Px_pred_outunits = Px_pred_Mpc / dkms_dMpc_zs
+        else:
+            sys.exit('Must input dkms_dMpc_zs') 
     else:
         sys.exit('Must input inout_unit: AA or kmps')
 
     return Px_pred_outunits
 
 
-def convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_unit='deg'):
+def convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_unit):
     """ Converts the transverse separation values from their input unit to Mpc as accepted by forestflow """
 
     H0 = cosmo_param_dict['H0']
@@ -320,8 +323,8 @@ def convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_uni
     return sepbins_Mpc
 
 
-def get_pcross_forestflow(z, mF, T0, gamma, lambda_pressure, cosmo_param_dict, 
-                          emulator, arinyo, kpar, sepbins, inout_unit='AA', sepbins_unit='deg'):
+def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMpc_zs, dkms_dMpc_zs, 
+                          emulator, arinyo, inout_unit, sepbins_unit, mF, T0, gamma, lambda_pressure):
     """ This function predicts Px from forestflow given the IGM and cosmo parameters of the input.
     PS: the function is not yet adapted to vary cosmology.
 
@@ -374,10 +377,10 @@ def get_pcross_forestflow(z, mF, T0, gamma, lambda_pressure, cosmo_param_dict,
         sys.exit('kpar array must not have a zero')
 
     # Conversions made at the beginning so that if the units are wrong, the code exists from here
-    kpar_iMpc = convert_kpar_to_forestflow_units(z, cosmo_param_dict, kpar, inout_unit)
-    print('Converted kpar to Mpc^-1 units:', kpar_iMpc)
+    kpar_iMpc = convert_kpar_to_forestflow_units(z, kpar, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
+    # print('Converted kpar to Mpc^-1 units:', kpar_iMpc)
     sepbins_Mpc = convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_unit)
-    print('Converted sepbins to Mpc units:', sepbins_Mpc)
+    # print('Converted sepbins to Mpc units:', sepbins_Mpc)
 
     # Creating dictionary of IGM parameters that will then be transformed into emu_params
     # PS: cosmo parameters are not given explicitely since they're not varied for now
@@ -389,17 +392,15 @@ def get_pcross_forestflow(z, mF, T0, gamma, lambda_pressure, cosmo_param_dict,
     }
 
     # Getting forestflow parameters
-    emu_params, info_power = get_forestflow_params(z, igm_param_dict, cosmo_param_dict)
-    print('Input parameters given to the emulator are:', emu_params, info_power)
+    emu_params, info_power = get_forestflow_params(z, igm_param_dict, cosmo_param_dict, sim_cosmo, dkms_dMpc_zs)
+    # print('Input parameters given to the emulator are:', emu_params, info_power)
 
     # Evaluating emulator at the input parameters values
     out = emulator.evaluate(
         emu_params=emu_params,
-        info_power=info_power,
-        Nrealizations=10000
-    )
+        info_power=info_power)
 
-     # Predict Px
+    # Predict Px
     rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
     arinyo.P3D_Mpc,
     info_power['z'],
@@ -411,7 +412,7 @@ def get_pcross_forestflow(z, mF, T0, gamma, lambda_pressure, cosmo_param_dict,
     **{"pp":out['coeffs_Arinyo']})
 
     # Convert Px_pred_Mpc to Px_pred_output that has inout_units
-    Px_pred_output = convert_pcross_to_output_units(z, cosmo_param_dict, Px_pred_Mpc, inout_unit)
+    Px_pred_output = convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
 
     # Return transpose to match Px_data shapes
     Px_pred_output_transpose = Px_pred_output.T
