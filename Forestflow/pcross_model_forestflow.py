@@ -109,9 +109,6 @@ def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, dkms_dMpc_zs):
     It includes redshift 'z' and cosmo parameters 'cosmo'.
     """
 
-    # Getting sim_cosmo from camb_cosmo based on cosmo input to be used for conversions
-    # sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo_param_dict)
-
     # Converting IGM parameters T0 and lambda_pressure to emulator parameters sigT_Mpc and kF_Mpc respectively
     sigT_kms = thermal_broadening_kms(igm_param_dict['T0'])
     # dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, z=np.array([z]))
@@ -254,9 +251,7 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
 
     # Conversions made at the beginning so that if the units are wrong, the code exists from here
     kpar_iMpc = convert_kpar_to_forestflow_units(z, kpar, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
-    # print('Converted kpar to Mpc^-1 units:', kpar_iMpc)
     sepbins_Mpc = convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_unit)
-    # print('Converted sepbins to Mpc units:', sepbins_Mpc)
 
     # Creating dictionary of IGM parameters that will then be transformed into emu_params
     # PS: cosmo parameters are not given explicitely since they're not varied for now
