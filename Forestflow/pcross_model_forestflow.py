@@ -80,13 +80,12 @@ def load_arinyo(z, cosmo_param_dict):
     return arinyo
 
 
-def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, dkms_dMpc_zs):
+def get_forestflow_params(z, igm_param_dict, dkms_dMpc_zs, cosmo_param_dict=None, delta_np_dict=None):
     """ This function: 
         - Reads the IGM parameters from igm_param_dict
-        - Reads the cosmo parameters from cosmo_param_dict
+        - Reads the cosmo parameters from cosmo_param_dict or amplitude and slope from delta_np_dict
         - Converts IGM parameters T0 and lambda_pressure to emulator parameters sigT_Mpc and kF_Mpc respectively
-        - Defines emualator parameters dictionary emu_params and linear power spectrum information dictionary 
-        containing redshift and cosmo parameters.
+        - Defines emualator parameters dictionary emu_params and linear power spectrum information dictionary
         - Returns them
 
     Arguments:
@@ -100,18 +99,20 @@ def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, dkms_dMpc_zs):
     cosmo_param_dict: Dictionary
     It should include 'H0', 'omch2', 'ombh2', 'mnu', 'omk', 'As', 'ns', 'nrun', 'w'.
 
+    delta_np_dict: Dictionary
+    It should include 'Delta2_p' and 'n_p'.
+
     Return:
     -------
     emu_params: Dictionary
     It includes the emulator parameters: 'mF', 'gamma', 'sigT_Mpc', 'kF_Mpc'.
 
     info_power: Dictionary
-    It includes redshift 'z' and cosmo parameters 'cosmo'.
+    If delta_np_dict is given: it includes redshift 'z', 'Delta2_p' and 'n_p', otherwise: it includes redshift 'z' and cosmo parameters 'cosmo'.
     """
 
     # Converting IGM parameters T0 and lambda_pressure to emulator parameters sigT_Mpc and kF_Mpc respectively
     sigT_kms = thermal_broadening_kms(igm_param_dict['T0'])
-    # dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, z=np.array([z]))
     sigT_Mpc = sigT_kms / dkms_dMpc_zs[0]
     kF_Mpc = 1 / (igm_param_dict['lambda_pressure'] / 1000)
 
@@ -122,18 +123,26 @@ def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, dkms_dMpc_zs):
         "sigT_Mpc":sigT_Mpc,
         "kF_Mpc":kF_Mpc,
     }
-    # check which type of cosmo param dict is given
-    if "H0" in cosmo_param_dict:
+    # check which type of param dict is given
+    if cosmo_param_dict is not None and delta_np_dict is None:
         info_power = {
-        "cosmo": cosmo_param_dict,
-        "z": z,
+            "cosmo": cosmo_param_dict,
+            "z": z,
         }
-    else:
+    elif cosmo_param_dict is None and delta_np_dict is not None:
         info_power = {
-        "Delta2_p": cosmo_param_dict['Delta2_p'],
-        "n_p": cosmo_param_dict['n_p'],
-        "z": z
+            "Delta2_p": cosmo_param_dict['Delta2_p'],
+            "n_p": cosmo_param_dict['n_p'],
+            "z": z,
         }
+    else: # This means both dicts are given and it should not happen in general since this is fixed in the get_pcross_forestflow for now
+        print('Warning: both delta_np_dict and cosmo_param_dict arguments are given, therefore Delta2_p and n_p will be fixed to the values given and will not be recomputed based on new cosmo')
+        info_power = {
+            "Delta2_p": cosmo_param_dict['Delta2_p'],
+            "n_p": cosmo_param_dict['n_p'],
+            "z": z,
+        }
+
     return emu_params, info_power
 
 
@@ -203,8 +212,37 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
 
     Arguments:
     ----------
+    kpar: Array of floats
+    Array of k_parallel at which we want to get a prediction.
+
+    sepbins: Array of floats
+    Array of sepbins at which we want to get a prediction.
+
     z: Float or array of floats
     Redshift.
+
+    cosmo_param_dict: Dictionary
+    Dictionary of cosmo parameters. It should include 'H0', 'omch2', 'ombh2', 'mnu', 'omk', 'As', 'ns', 'nrun', 'w'. 
+    PS: they vary as function of redshift z, but are given as input to this function since cosmo is not to be varied for the moment.
+
+    sim_cosmo: Class
+    CAMB params.
+
+    dAA_dMpc_zs, dkms_dMpc_zs: Float or array of floats
+    Conversion factors.
+
+    emulator: Emulator already loaded using load_emulator() function.
+
+    arinyo: Loaded using load_arinyo() function. It must be given as input as long as the cosmo is not to be varied for now.
+
+    inout_unit: String, default: 'AA', options: 'kmps'
+    Units of input kpar that must be given in terms of the output units we want, and the output will be given in that same unit.
+
+    sepbins_unit: Sting, default: 'deg', options: 'Mpc'
+    Units of separation values at which we want to get the prediction.
+
+    Delta2_p, n_p: Floats
+    Amplitude and slope of the linear matter power spectrum precomputed from fixed cosmo for now.
 
     mF: Float or array of floats []
     Mean transmitted flux fraction. It is just an array if z is an array.
@@ -216,28 +254,7 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
     Slope of the temperature density relation T = T0 * delta_b**(gamma - 1). It is just an array if z is an array.
 
     lambda_pressure: Float or array of floats
-    Pressure smoothing scale (Jeans smoothing): The scale where pressure overcomes gravity at small scales 
-    -> smoothing of fluctuations.
-
-    cosmo_param_dict: Dictionary
-    Dictionary of cosmo parameters. It should include 'H0', 'omch2', 'ombh2', 'mnu', 'omk', 'As', 'ns', 'nrun', 'w'. 
-    PS: they vary as function of redshift z, but are given as input to this function since cosmo is not to be varied for the moment.
-
-    emulator: Emulator already loaded using load_emulator() function.
-
-    arinyo: Loaded using load_arinyo() function. It must be given as input as long as the cosmo is not to be varied for now.
-
-    kpar: Array of floats
-    Array of k_parallel at which we want to get a prediction.
-
-    sepbins: Array of floats
-    Array of sepbins at which we want to get a prediction.
-
-    inout_unit: String, default: 'AA', options: 'kmps'
-    Units of input kpar that must be given in terms of the output units we want, and the output will be given in that same unit.
-
-    sepbins_unit: Sting, default: 'deg', options: 'Mpc'.
-    Units of separation values at which we want to get the prediction.
+    Pressure smoothing scale (Jeans smoothing): The scale where pressure overcomes gravity at small scales -> smoothing of fluctuations.
 
     Return:
     -------
@@ -276,7 +293,9 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
         emu_params=emu_params)
     
     # turn out into a dictionary
-    arinyo_coeffs = {"bias": arinyo_coeffs[0], "beta": arinyo_coeffs[1], "q1": arinyo_coeffs[2], "kvav": arinyo_coeffs[3], "av": arinyo_coeffs[4], "bv": arinyo_coeffs[5], "kp": arinyo_coeffs[6], "q2": arinyo_coeffs[7]}
+    arinyo_coeffs = {"bias": arinyo_coeffs[0], "beta": arinyo_coeffs[1], "q1": arinyo_coeffs[2],
+                     "kvav": arinyo_coeffs[3], "av": arinyo_coeffs[4], "bv": arinyo_coeffs[5],
+                     "kp": arinyo_coeffs[6], "q2": arinyo_coeffs[7]}
 
     # Predict Px
     rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
