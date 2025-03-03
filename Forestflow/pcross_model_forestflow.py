@@ -3,7 +3,7 @@
 import numpy as np
 import os, sys
 sys.path.insert(0, os.environ['HOME']+'/Software/LyaP3D')
-from tools import SPEED_LIGHT, LAMBDA_LYA
+# from tools import SPEED_LIGHT, LAMBDA_LYA
 
 # For forestflow
 from forestflow.model_p3d_arinyo import ArinyoModel
@@ -19,132 +19,132 @@ from lace.cosmo import camb_cosmo
 from functools import partial
 
 
-def get_pcross_forestflow_old(z_target, k_parallel, transverse_sep, mF, gamma, sigT_Mpc, kF_Mpc, Archive3D=None, 
-                          k_parallel_units='I_Angstrom', transverse_sep_units='deg'):
-    """ Old function to be removed """
-    if k_parallel[0] == 0:
-        sys.exit('k_parallel array must not have a zero')
+# def get_pcross_forestflow_old(z_target, k_parallel, transverse_sep, mF, gamma, sigT_Mpc, kF_Mpc, Archive3D=None, 
+#                           k_parallel_units='I_Angstrom', transverse_sep_units='deg'):
+#     """ Old function to be removed """
+#     if k_parallel[0] == 0:
+#         sys.exit('k_parallel array must not have a zero')
 
-    path_program = forestflow.__path__[0][:-10]
+#     path_program = forestflow.__path__[0][:-10]
 
-    # input emu
-    z = z_target
+#     # input emu
+#     z = z_target
 
-    ## Hardcoded cosmo for now
-    omnuh2 = 0.0006
-    mnu = omnuh2 * 93.14
-    H0 = 67.36
-    omch2 = 0.12
-    ombh2 = 0.02237
-    As = 2.1e-9
-    ns = 0.9649
-    nrun = 0.0
-    w = -1.0
-    omk = 0
-    cosmo = {
-        'H0': H0,
-        'omch2': omch2,
-        'ombh2': ombh2,
-        'mnu': mnu,
-        'omk': omk,
-        'As': As,
-        'ns': ns,
-        'nrun': nrun,
-        'w': w
-    }
-    sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo)
+#     ## Hardcoded cosmo for now
+#     omnuh2 = 0.0006
+#     mnu = omnuh2 * 93.14
+#     H0 = 67.36
+#     omch2 = 0.12
+#     ombh2 = 0.02237
+#     As = 2.1e-9
+#     ns = 0.9649
+#     nrun = 0.0
+#     w = -1.0
+#     omk = 0
+#     cosmo = {
+#         'H0': H0,
+#         'omch2': omch2,
+#         'ombh2': ombh2,
+#         'mnu': mnu,
+#         'omk': omk,
+#         'As': As,
+#         'ns': ns,
+#         'nrun': nrun,
+#         'w': w
+#     }
+#     sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo)
 
-    # Conversions needed for forestflow (It takes all in Mpc units)
-    if k_parallel_units == 'I_kmps':
-        dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, z=np.array([z]))
-        kpar_iMpc = k_parallel * dkms_dMpc_zs
-    elif k_parallel_units == 'I_Angstrom':
-        dA_dMpc_zs = (astropy_cosmo.H(z).value * LAMBDA_LYA) / SPEED_LIGHT
-        kpar_iMpc = k_parallel * dA_dMpc_zs
-    elif k_parallel_units == 'I_Mpc':
-        kpar_iMpc = k_parallel
-    else:
-        sys.exit('Must input k_parallel_units: I_Mpc/I_kmps/I_Angstrom')
+#     # Conversions needed for forestflow (It takes all in Mpc units)
+#     if k_parallel_units == 'I_kmps':
+#         dkms_dMpc_zs = camb_cosmo.dkms_dMpc(sim_cosmo, z=np.array([z]))
+#         kpar_iMpc = k_parallel * dkms_dMpc_zs
+#     elif k_parallel_units == 'I_Angstrom':
+#         dA_dMpc_zs = (astropy_cosmo.H(z).value * LAMBDA_LYA) / SPEED_LIGHT
+#         kpar_iMpc = k_parallel * dA_dMpc_zs
+#     elif k_parallel_units == 'I_Mpc':
+#         kpar_iMpc = k_parallel
+#     else:
+#         sys.exit('Must input k_parallel_units: I_Mpc/I_kmps/I_Angstrom')
 
-    if transverse_sep_units == 'deg':
-        h = H0 / 100
-        Om0 = (omch2 + ombh2) / (h**2)
-        astropy_cosmo = FlatLambdaCDM(H0=H0, Om0=Om0, m_nu=[mnu, 0, 0])
-        sepbins_cMpc = astropy_cosmo.comoving_transverse_distance(z) * np.deg2rad(sepbins_deg)
-    elif transverse_sep_units == 'Mpc':
-        sepbins_cMpc = transverse_sep
-    else:
-        sys.exit('Must input transverse_sep_units: Mpc or deg')
+#     if transverse_sep_units == 'deg':
+#         h = H0 / 100
+#         Om0 = (omch2 + ombh2) / (h**2)
+#         astropy_cosmo = FlatLambdaCDM(H0=H0, Om0=Om0, m_nu=[mnu, 0, 0])
+#         sepbins_cMpc = astropy_cosmo.comoving_transverse_distance(z) * np.deg2rad(sepbins_deg)
+#     elif transverse_sep_units == 'Mpc':
+#         sepbins_cMpc = transverse_sep
+#     else:
+#         sys.exit('Must input transverse_sep_units: Mpc or deg')
 
-    # emulator parameters
-    emu_params = {
-    "mF": mF,
-    "gamma": gamma,
-    "sigT_Mpc":sigT_Mpc,
-    "kF_Mpc":kF_Mpc,}
+#     # emulator parameters
+#     emu_params = {
+#     "mF": mF,
+#     "gamma": gamma,
+#     "sigT_Mpc":sigT_Mpc,
+#     "kF_Mpc":kF_Mpc,}
 
-    # LOAD P3D ARCHIVE
-    if Archive3D is None:
-        folder_lya_data = path_program + "/data/best_arinyo/"
-        folder_interp = path_program + "/data/plin_interp/"
+#     # LOAD P3D ARCHIVE
+#     if Archive3D is None:
+#         folder_lya_data = path_program + "/data/best_arinyo/"
+#         folder_interp = path_program + "/data/plin_interp/"
         
-        Archive3D = GadgetArchive3D(
-            base_folder=path_program[:-1],
-            folder_data=folder_lya_data,
-            force_recompute_plin=False,
-            average="both",
-        )
+#         Archive3D = GadgetArchive3D(
+#             base_folder=path_program[:-1],
+#             folder_data=folder_lya_data,
+#             force_recompute_plin=False,
+#             average="both",
+#         )
 
-    # Load emulator
-    training_type = "Arinyo_min"
-    model_path=path_program+"/data/emulator_models/mpg_hypercube.pt"
+#     # Load emulator
+#     training_type = "Arinyo_min"
+#     model_path=path_program+"/data/emulator_models/mpg_hypercube.pt"
     
-    emulator = P3DEmulator(
-        Archive3D.training_data,
-        Archive3D.emu_params,
-        nepochs=300,
-        lr=0.001,  # 0.005
-        batch_size=20,
-        step_size=200,
-        gamma=0.1,
-        weight_decay=0,
-        adamw=True,
-        nLayers_inn=12,  # 15
-        Archive=Archive3D,
-        Nrealizations=10000,
-        training_type=training_type,
-        model_path=model_path,
-    )
+#     emulator = P3DEmulator(
+#         Archive3D.training_data,
+#         Archive3D.emu_params,
+#         nepochs=300,
+#         lr=0.001,  # 0.005
+#         batch_size=20,
+#         step_size=200,
+#         gamma=0.1,
+#         weight_decay=0,
+#         adamw=True,
+#         nLayers_inn=12,  # 15
+#         Archive=Archive3D,
+#         Nrealizations=10000,
+#         training_type=training_type,
+#         model_path=model_path,
+#     )
 
-    info_power = {
-    "cosmo": cosmo,
-    "z": z,
-}
+#     info_power = {
+#     "cosmo": cosmo,
+#     "z": z,
+# }
 
-    out = emulator.evaluate(
-        emu_params=emu_params,
-        info_power=info_power,
-        Nrealizations=10000
-    )
+#     out = emulator.evaluate(
+#         emu_params=emu_params,
+#         info_power=info_power,
+#         Nrealizations=10000
+#     )
 
-    # now initialize the Arinyo model with the emulated values of bias and beta
-    camb_results = camb_cosmo.get_camb_results(sim_cosmo, zs=[z], camb_kmax_Mpc=1000) # set default cosmo
-    arinyo = ArinyoModel(cosmo=sim_cosmo, camb_results=camb_results, zs=[z], camb_kmax_Mpc=1000) # set model
+#     # now initialize the Arinyo model with the emulated values of bias and beta
+#     camb_results = camb_cosmo.get_camb_results(sim_cosmo, zs=[z], camb_kmax_Mpc=1000) # set default cosmo
+#     arinyo = ArinyoModel(cosmo=sim_cosmo, camb_results=camb_results, zs=[z], camb_kmax_Mpc=1000) # set model
 
-    # Predict Px
-    rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
-    arinyo.P3D_Mpc,
-    z,
-    rperp_choice=sepbins_cMpc,
-    P3D_mode='pol',
-    min_kperp=10**-3,
-    max_kperp=10**2.9,
-    nkperp=2**12,
-    **{"pp":out['coeffs_Arinyo']})
+#     # Predict Px
+#     rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
+#     arinyo.P3D_Mpc,
+#     z,
+#     rperp_choice=sepbins_cMpc,
+#     P3D_mode='pol',
+#     min_kperp=10**-3,
+#     max_kperp=10**2.9,
+#     nkperp=2**12,
+#     **{"pp":out['coeffs_Arinyo']})
 
-    ## ADD option that converts output
+#     ## ADD option that converts output
 
-    return rperp_pred, kpar_iMpc, Px_pred_Mpc.T
+#     return rperp_pred, kpar_iMpc, Px_pred_Mpc.T
 
 
 def load_emulator():
@@ -154,7 +154,6 @@ def load_emulator():
 
     # LOAD P3D ARCHIVE
     folder_lya_data = path_program + "/data/best_arinyo/"
-    folder_interp = path_program + "/data/plin_interp/"
 
     Archive3D = GadgetArchive3D(
         base_folder=path_program[:-1],
@@ -198,7 +197,7 @@ def load_arinyo(z, cosmo_param_dict):
 
     Return:
     -------
-    arinyo: ??
+    arinyo: instance of the ArinyoModel class
     """
 
     # Getting sim_cosmo from camb_cosmo based on cosmo input
@@ -211,7 +210,7 @@ def load_arinyo(z, cosmo_param_dict):
     return arinyo
 
 
-def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, sim_cosmo, dkms_dMpc_zs):
+def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, dkms_dMpc_zs):
     """ This function: 
         - Reads the IGM parameters from igm_param_dict
         - Reads the cosmo parameters from cosmo_param_dict
@@ -256,11 +255,18 @@ def get_forestflow_params(z, igm_param_dict, cosmo_param_dict, sim_cosmo, dkms_d
         "sigT_Mpc":sigT_Mpc,
         "kF_Mpc":kF_Mpc,
     }
-
-    info_power = {
-    "cosmo": cosmo_param_dict,
-    "z": z,
-    }
+    # check which type of cosmo param dict is given
+    if "H0" in cosmo_param_dict:
+        info_power = {
+        "cosmo": cosmo_param_dict,
+        "z": z,
+        }
+    else:
+        info_power = {
+        "Delta2_p": cosmo_param_dict['Delta2_p'],
+        "n_p": cosmo_param_dict['n_p'],
+        "z": z
+        }
     return emu_params, info_power
 
 
@@ -324,7 +330,7 @@ def convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_uni
 
 
 def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMpc_zs, dkms_dMpc_zs, 
-                          emulator, arinyo, inout_unit, sepbins_unit, mF, T0, gamma, lambda_pressure):
+                          emulator, arinyo, inout_unit, sepbins_unit, Delta2_p, n_p, mF, T0, gamma, lambda_pressure):
     """ This function predicts Px from forestflow given the IGM and cosmo parameters of the input.
     PS: the function is not yet adapted to vary cosmology.
 
@@ -391,14 +397,21 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
         "T0": T0,
     }
 
+    delta_np_dict = {
+        "Delta2_p": Delta2_p,
+        "n_p": n_p,
+    }
     # Getting forestflow parameters
-    emu_params, info_power = get_forestflow_params(z, igm_param_dict, cosmo_param_dict, sim_cosmo, dkms_dMpc_zs)
-    # print('Input parameters given to the emulator are:', emu_params, info_power)
-
+    emu_params, info_power = get_forestflow_params(z, igm_param_dict, delta_np_dict, dkms_dMpc_zs)
+    print('Input parameters given to the emulator are:', emu_params, info_power)
+    # merge the two
+    emu_params.update(info_power)
     # Evaluating emulator at the input parameters values
-    out = emulator.evaluate(
-        emu_params=emu_params,
-        info_power=info_power)
+    arinyo_coeffs = emulator.predict_Arinyos(
+        emu_params=emu_params)
+    
+    # turn out into a dictionary
+    arinyo_coeffs = {"bias": arinyo_coeffs[0], "beta": arinyo_coeffs[1], "q1": arinyo_coeffs[2], "kvav": arinyo_coeffs[3], "av": arinyo_coeffs[4], "bv": arinyo_coeffs[5], "kp": arinyo_coeffs[6], "q2": arinyo_coeffs[7]}
 
     # Predict Px
     rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
@@ -409,7 +422,7 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
     min_kperp=10**-3,
     max_kperp=10**2.9,
     nkperp=2**12,
-    **{"pp":out['coeffs_Arinyo']})
+    **{"pp":arinyo_coeffs})
 
     # Convert Px_pred_Mpc to Px_pred_output that has inout_units
     Px_pred_output = convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
