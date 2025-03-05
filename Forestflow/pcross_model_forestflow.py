@@ -285,9 +285,11 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
     }
     # Getting forestflow parameters
     emu_params, info_power = get_forestflow_params(z=z, igm_param_dict=igm_param_dict, dkms_dMpc_zs=dkms_dMpc_zs, cosmo_param_dict=None, delta_np_dict=delta_np_dict)
-    print('Input parameters given to the emulator are:', emu_params, info_power)
+    # print('Input parameters given to the emulator are:', emu_params, info_power)
+
     # merge the two
     emu_params.update(info_power)
+
     # Evaluating emulator at the input parameters values
     arinyo_coeffs = emulator.predict_Arinyos(
         emu_params=emu_params)
