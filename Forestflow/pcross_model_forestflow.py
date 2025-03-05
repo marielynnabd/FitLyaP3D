@@ -131,15 +131,15 @@ def get_forestflow_params(z, igm_param_dict, dkms_dMpc_zs, cosmo_param_dict=None
         }
     elif cosmo_param_dict is None and delta_np_dict is not None:
         info_power = {
-            "Delta2_p": cosmo_param_dict['Delta2_p'],
-            "n_p": cosmo_param_dict['n_p'],
+            "Delta2_p": delta_np_dict['Delta2_p'],
+            "n_p": delta_np_dict['n_p'],
             "z": z,
         }
     else: # This means both dicts are given and it should not happen in general since this is fixed in the get_pcross_forestflow for now
         print('Warning: both delta_np_dict and cosmo_param_dict arguments are given, therefore Delta2_p and n_p will be fixed to the values given and will not be recomputed based on new cosmo')
         info_power = {
-            "Delta2_p": cosmo_param_dict['Delta2_p'],
-            "n_p": cosmo_param_dict['n_p'],
+            "Delta2_p": delta_np_dict['Delta2_p'],
+            "n_p": delta_np_dict['n_p'],
             "z": z,
         }
 
@@ -284,7 +284,7 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
         "n_p": n_p,
     }
     # Getting forestflow parameters
-    emu_params, info_power = get_forestflow_params(z, igm_param_dict, delta_np_dict, dkms_dMpc_zs)
+    emu_params, info_power = get_forestflow_params(z=z, igm_param_dict=igm_param_dict, dkms_dMpc_zs=dkms_dMpc_zs, cosmo_param_dict=None, delta_np_dict=delta_np_dict)
     print('Input parameters given to the emulator are:', emu_params, info_power)
     # merge the two
     emu_params.update(info_power)
