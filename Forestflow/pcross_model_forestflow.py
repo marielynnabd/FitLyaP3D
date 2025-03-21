@@ -17,7 +17,7 @@ from lace.cosmo.thermal_broadening import thermal_broadening_kms
 from lace.cosmo import camb_cosmo
 
 
-def load_emulator():
+def load_emulator(Nrealizations):
     """ This function loads the emulator and doesn't require any input """
 
     path_program = forestflow.__path__[0][:-10]
@@ -50,6 +50,7 @@ def load_emulator():
         Archive=Archive3D,
         training_type=training_type,
         model_path=model_path,
+        Nrealizations=Nrealizations,
     )
 
     return emulator
@@ -300,21 +301,35 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
                      "kp": arinyo_coeffs[6], "q2": arinyo_coeffs[7]}
 
     # Predict Px
-    rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
-    arinyo.P3D_Mpc,
-    info_power['z'],
-    rperp_choice=sepbins_Mpc,
-    P3D_mode='pol',
-    min_kperp=10**-3,
-    max_kperp=10**2.9,
-    nkperp=2**12,
-    **{"pp":arinyo_coeffs})
+    try:
+        rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
+        arinyo.P3D_Mpc,
+        info_power['z'],
+        rperp_choice=sepbins_Mpc,
+        P3D_mode='pol',
+        min_kperp=10**-3,
+        max_kperp=10**2.9,
+        nkperp=2**12,
+        **{"pp":arinyo_coeffs})
 
-    # Convert Px_pred_Mpc to Px_pred_output that has inout_units
-    Px_pred_output = convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
+        # print('Input parameters from minuit variation:', igm_param_dict, cosmo_param_dict, delta_np_dict)
+        print('Input parameters:', igm_param_dict, cosmo_param_dict, delta_np_dict)
+        print('Input parameters given to the emulator are:', emu_params, info_power)
 
-    # Return transpose to match Px_data shapes
-    Px_pred_output_transpose = Px_pred_output.T
+        # Convert Px_pred_Mpc to Px_pred_output that has inout_units
+        Px_pred_output = convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
+    
+        # Return transpose to match Px_data shapes
+        Px_pred_output_transpose = Px_pred_output.T
 
-    return Px_pred_output_transpose
+        if np.any(np.isnan(Px_pred_output_transpose)):
+            print("NaN encountered in Px prediction!")
+            print(Px_pred_output_transpose)
+
+        return Px_pred_output_transpose
+    except:
+        print('Input parameters from minuit variation:', igm_param_dict, cosmo_param_dict, delta_np_dict)
+        print('Input parameters given to the emulator are:', emu_params, info_power)
+        print('Problematic model so None is returned for Px prediction')
+        return None
 
