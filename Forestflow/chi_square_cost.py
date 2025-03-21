@@ -44,10 +44,10 @@ class Likelihood_Pcross:
 
         # Compute chi-square
         if y_model is None:
-            chi_square = 1000
-            print('Chi_square = 1000')
+            chi_square = np.inf
         else:
             chi_square = np.sum((self.y_data - y_model) ** 2 / self.y_err ** 2)
+        print('Chi_square = ', chi_square)
 
         if self.minimize_chi_square:
             if self.return_model:
