@@ -312,10 +312,6 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
         nkperp=2**12,
         **{"pp":arinyo_coeffs})
 
-        # print('Input parameters from minuit variation:', igm_param_dict, cosmo_param_dict, delta_np_dict)
-        print('Input parameters:', igm_param_dict, cosmo_param_dict, delta_np_dict)
-        print('Input parameters given to the emulator are:', emu_params, info_power)
-
         # Convert Px_pred_Mpc to Px_pred_output that has inout_units
         Px_pred_output = convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
     
