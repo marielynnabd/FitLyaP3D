@@ -36,18 +36,19 @@ class Likelihood_Pcross:
         print(self.parameters)
         print(self.model)
 
-    def __call__(self, mF, T0, gamma, lambda_pressure):
+    # def __call__(self, mF, T0, gamma, lambda_pressure):
+    def __call__(self, *args, **kwargs):
         """ Computes chi-square or log-likelihood given parameter values """
 
         # Compute model prediction with current parameters
-        y_model = self.model(mF, T0, gamma, lambda_pressure)
+        # y_model = self.model(mF, T0, gamma, lambda_pressure)
+        y_model = self.model(*args, **kwargs)
 
         # Compute chi-square
         if y_model is None:
             chi_square = np.inf
         else:
             chi_square = np.sum((self.y_data - y_model) ** 2 / self.y_err ** 2)
-        print('Chi_square = ', chi_square)
 
         if self.minimize_chi_square:
             if self.return_model:
