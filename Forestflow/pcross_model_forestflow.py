@@ -74,9 +74,9 @@ def load_arinyo(z, cosmo_param_dict):
     # Getting sim_cosmo from camb_cosmo based on cosmo input
     sim_cosmo = camb_cosmo.get_cosmology_from_dictionary(cosmo_param_dict)
 
-    # Initializing the Arinyo model with the emulated values of bias and beta
-    camb_results = camb_cosmo.get_camb_results(sim_cosmo, zs=[z], camb_kmax_Mpc=1000) # set default cosmo
-    arinyo = ArinyoModel(cosmo=sim_cosmo, camb_results=camb_results, zs=[z], camb_kmax_Mpc=1000) # set model
+    # Initializing the Arinyo model with the emulated values of bias and beta heyyyy
+    camb_results = camb_cosmo.get_camb_results(sim_cosmo, zs=z, camb_kmax_Mpc=1000) # set default cosmo
+    arinyo = ArinyoModel(cosmo=sim_cosmo, camb_results=camb_results, zs=z, camb_kmax_Mpc=1000) # set model
 
     return arinyo
 
@@ -143,30 +143,32 @@ def get_forestflow_params(z, igm_param_dict, dkms_dMpc_zs, cosmo_param_dict=None
             "n_p": delta_np_dict['n_p'],
             "z": z,
         }
-
     return emu_params, info_power
 
 
-def convert_kpar_to_forestflow_units(z, kpar, inout_unit, dAA_dMpc_zs=None, dkms_dMpc_zs=None):
+def convert_kpar_to_forestflow_units(kpar, inout_unit, dAA_dMpc_zs=None, dkms_dMpc_zs=None):
     """ Converts kpar to Mpc, the only input unit accepted by forestflow """
-
+    kpar_iMpc = []
     if inout_unit == 'AA':
         if dAA_dMpc_zs is not None:
-            kpar_iMpc = kpar * dAA_dMpc_zs
+            for dAA_dMpc in dAA_dMpc_zs:
+                kpar_iMpc.append(kpar * dAA_dMpc)
         else:
             sys.exit('Must input dAA_dMpc_zs')
     elif inout_unit == 'kmps':
         if dkms_dMpc_zs is not None:
-            kpar_iMpc = kpar * dkms_dMpc_zs
+            for dkms_dMpc in dAA_dMpc_zs:
+                kpar_iMpc.append(kpar * dkms_dMpc)
         else:
             sys.exit('Must input dkms_dMpc_zs') 
     else:
         sys.exit('Must input inout_unit: AA or kmps')
+    
+    return np.asarray(kpar_iMpc)
 
-    return kpar_iMpc
 
-
-def convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=None, dkms_dMpc_zs=None):
+def convert_pcross_to_output_units(Px_pred_Mpc, inout_unit, dAA_dMpc_zs=None, dkms_dMpc_zs=None):
+    # ML note: still need to update this to work with len(dAA_dMpc_zs)>1 
     """ Converts the output of forestflow from Mpc to the desired output unit """
 
     if inout_unit == 'AA':
@@ -194,20 +196,21 @@ def convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_uni
     mnu = cosmo_param_dict['mnu']
 
     if sepbins_unit == 'deg':
+        sepbins_Mpc = np.zeros(sepbins.shape)
         h = H0 / 100
         Om0 = (omch2 + ombh2) / (h**2)
         astropy_cosmo = FlatLambdaCDM(H0=H0, Om0=Om0, m_nu=[mnu, 0, 0])
-        sepbins_Mpc = astropy_cosmo.comoving_transverse_distance(z) * np.deg2rad(sepbins)
+        for i, z_i in enumerate(z):
+            sepbins_Mpc[i] = astropy_cosmo.comoving_transverse_distance(z_i) * np.deg2rad(sepbins[i])
     elif sepbins_unit == 'Mpc':
         sepbins_Mpc = sepbins
     else:
         sys.exit('Must input sepbins_unit: Mpc or deg')
-
     return sepbins_Mpc
 
 
-def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMpc_zs, dkms_dMpc_zs, 
-                          emulator, arinyo, inout_unit, sepbins_unit, Delta2_p, n_p, mF, T0, gamma, lambda_pressure):
+def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, dAA_dMpc_zs, dkms_dMpc_zs, 
+                          emulator, arinyo, inout_unit, sepbins_unit, delta_np_dict, mF, T0, gamma, lambda_pressure):
     """ This function predicts Px from forestflow given the IGM and cosmo parameters of the input.
     PS: the function is not yet adapted to vary cosmology.
 
@@ -225,9 +228,6 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
     cosmo_param_dict: Dictionary
     Dictionary of cosmo parameters. It should include 'H0', 'omch2', 'ombh2', 'mnu', 'omk', 'As', 'ns', 'nrun', 'w'. 
     PS: they vary as function of redshift z, but are given as input to this function since cosmo is not to be varied for the moment.
-
-    sim_cosmo: Class
-    CAMB params.
 
     dAA_dMpc_zs, dkms_dMpc_zs: Float or array of floats
     Conversion factors.
@@ -267,12 +267,13 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
     if kpar[0] == 0:
         sys.exit('kpar array must not have a zero')
 
-    # Conversions made at the beginning so that if the units are wrong, the code exists from here
-    kpar_iMpc = convert_kpar_to_forestflow_units(z, kpar, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
+    # Conversions made at the beginning so that if the units are wrong, the code exits from here
+    kpar_iMpc = convert_kpar_to_forestflow_units(kpar, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
     sepbins_Mpc = convert_sepbins_to_foresflow_units(z, cosmo_param_dict, sepbins, sepbins_unit)
 
     # Creating dictionary of IGM parameters that will then be transformed into emu_params
     # PS: cosmo parameters are not given explicitely since they're not varied for now
+    
     igm_param_dict = {
         "mF": mF,
         "gamma": gamma,
@@ -280,52 +281,59 @@ def get_pcross_forestflow(kpar, sepbins, z, cosmo_param_dict, sim_cosmo, dAA_dMp
         "T0": T0,
     }
 
-    delta_np_dict = {
-        "Delta2_p": Delta2_p,
-        "n_p": n_p,
-    }
     # Getting forestflow parameters
     emu_params, info_power = get_forestflow_params(z=z, igm_param_dict=igm_param_dict, dkms_dMpc_zs=dkms_dMpc_zs, cosmo_param_dict=None, delta_np_dict=delta_np_dict)
     # print('Input parameters given to the emulator are:', emu_params, info_power)
-
+    
     # merge the two
     emu_params.update(info_power)
 
-    # Evaluating emulator at the input parameters values
-    arinyo_coeffs = emulator.predict_Arinyos(
-        emu_params=emu_params)
-    
-    # turn out into a dictionary
-    arinyo_coeffs = {"bias": arinyo_coeffs[0], "beta": arinyo_coeffs[1], "q1": arinyo_coeffs[2],
-                     "kvav": arinyo_coeffs[3], "av": arinyo_coeffs[4], "bv": arinyo_coeffs[5],
-                     "kp": arinyo_coeffs[6], "q2": arinyo_coeffs[7]}
+    # prepare an Arinyo dictionary
+    arinyo_coeffs = []
 
+    # Evaluating emulator at the input parameters values
+    for i, z_i in enumerate(z):
+        emu_params_i = {}
+        for key in emu_params.keys():
+            emu_params_i[key] = emu_params[key][i]
+        arinyo_coeffs_i = emulator.predict_Arinyos(
+        emu_params=emu_params_i)    
+        # turn into a dictionary
+        arinyo_coeffs_i = {"bias": arinyo_coeffs_i[0], "beta": arinyo_coeffs_i[1], "q1": arinyo_coeffs_i[2],
+                        "kvav": arinyo_coeffs_i[3], "av": arinyo_coeffs_i[4], "bv": arinyo_coeffs_i[5],
+                        "kp": arinyo_coeffs_i[6], "q2": arinyo_coeffs_i[7]}
+        arinyo_coeffs.append(arinyo_coeffs_i)
     # Predict Px
     try:
-        rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
-        arinyo.P3D_Mpc,
-        info_power['z'],
-        rperp_choice=sepbins_Mpc,
-        P3D_mode='pol',
-        min_kperp=10**-3,
-        max_kperp=10**2.9,
-        nkperp=2**12,
-        **{"pp":arinyo_coeffs})
+        # use the commented lines if you want to do a detailed version that changes settings
+        # rperp_pred, Px_pred_Mpc = pcross.Px_Mpc_detailed(kpar_iMpc,
+        # arinyo.P3D_Mpc,
+        # info_power['z'],
+        # rperp_choice=sepbins_Mpc,
+        # P3D_mode='pol',
+        # min_kperp=10**-3,
+        # max_kperp=10**2.9,
+        # nkperp=2**12,
+        # **{"pp":arinyo_coeffs})
+        
+        Px_pred = []
+        for i, z_i in enumerate(z):
+            rperp_pred_i, Px_pred_Mpc_i = pcross.Px_Mpc(kpar_iMpc[i], arinyo.P3D_Mpc, z_i, rperp_choice = sepbins_Mpc[i], **{"pp":arinyo_coeffs[i]})
+            # Convert Px_pred_Mpc to Px_pred_output that has inout_units
+            Px_pred_output_i = convert_pcross_to_output_units(Px_pred_Mpc_i, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs[i], dkms_dMpc_zs=dkms_dMpc_zs[i])
+            
+            # Return transpose to match Px_data shapes
+            Px_pred_output_transpose = Px_pred_output_i.T
 
-        # Convert Px_pred_Mpc to Px_pred_output that has inout_units
-        Px_pred_output = convert_pcross_to_output_units(z, Px_pred_Mpc, inout_unit, dAA_dMpc_zs=dAA_dMpc_zs, dkms_dMpc_zs=dkms_dMpc_zs)
+            if np.any(np.isnan(Px_pred_output_transpose)):
+                print("NaN encountered in Px prediction!")
+                print(Px_pred_output_transpose)
+            Px_pred.append(Px_pred_output_transpose)
+        return np.asarray(Px_pred)
     
-        # Return transpose to match Px_data shapes
-        Px_pred_output_transpose = Px_pred_output.T
-
-        if np.any(np.isnan(Px_pred_output_transpose)):
-            print("NaN encountered in Px prediction!")
-            print(Px_pred_output_transpose)
-
-        return Px_pred_output_transpose
     except:
         print('Input parameters from minuit variation:', igm_param_dict, cosmo_param_dict, delta_np_dict)
         print('Input parameters given to the emulator are:', emu_params, info_power)
+        print('Input parameters given to the arinyo model are:', arinyo_coeffs)
         print('Problematic model so None is returned for Px prediction')
         return None
-
